@@ -12,3 +12,31 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum ServiceType {
+  DELIVERY
+  PICKUP
+  PAYMENT
+}
+
+model Lead {
+  id              Int               @id @default(autoincrement())
+  name            String
+  mobile          String
+  email           String            @unique
+  postCode        String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  ServiceInterest ServiceInterest[]
+}
+
+model ServiceInterest {
+  id          Int         @id @default(autoincrement())
+  lead        Lead        @relation(fields: [leadId], references: [id])
+  leadId      Int
+  serviceType ServiceType
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([leadId, serviceType])
+}
