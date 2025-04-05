@@ -32,7 +32,7 @@ model Lead {
 
 model ServiceInterest {
   id          Int         @id @default(autoincrement())
-  lead        Lead        @relation(fields: [leadId], references: [id])
+  lead        Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
   leadId      Int
   serviceType ServiceType
   createdAt   DateTime    @default(now())
