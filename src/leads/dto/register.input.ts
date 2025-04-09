@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, MinLength } from 'class-validator';
 import { ServiceType } from '../enums/service-type.enum';
+import { ERROR_MESSAGES } from 'src/shared/common/constants';
 
 @InputType()
 export class RegisterInput {
@@ -16,7 +17,7 @@ export class RegisterInput {
 
   @Field()
   @IsNotEmpty()
-  @IsPhoneNumber('PH', { message: 'Please enter a valid Philippines phone number' })
+  @IsPhoneNumber('PH', { message: ERROR_MESSAGES.LEADS.INVALID_PHONE_NUMBER })
   mobile: string;
 
   @Field()
@@ -27,7 +28,7 @@ export class RegisterInput {
   @Field(() => [ServiceType])
   @IsEnum(ServiceType, { each: true })
   @MinLength(1, {
-    message: 'At least one service type must be selected',
+    message: ERROR_MESSAGES.LEADS.MINIMUM_SERVICE_TYPE,
   })
   serviceType: ServiceType[];
 }
