@@ -3,6 +3,7 @@ import { LeadsRepository } from '../repositories/leads.repository';
 import { RegisterInput } from '../dto/register.input';
 import { UtilityService } from 'src/shared/utilities/services/utility.service';
 import { LeadResponse } from '../dto/lead-response.type';
+import { SUCCESS_MESSAGES } from 'src/shared/common/constants';
 
 @Injectable()
 export class LeadsService {
@@ -16,7 +17,7 @@ export class LeadsService {
 
     const leadResponse = this.utilityService.handleSuccess(
       lead,
-      'Lead registered successfully',
+      SUCCESS_MESSAGES.LEADS.REGISTERED,
       HttpStatus.CREATED,
     );
 

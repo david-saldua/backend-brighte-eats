@@ -1,5 +1,12 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEmail, IsEnum, IsNotEmpty, IsPhoneNumber, IsString, MinLength } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsPhoneNumber,
+  IsString,
+} from 'class-validator';
 import { ServiceType } from '../enums/service-type.enum';
 import { ERROR_MESSAGES } from 'src/shared/common/constants';
 
@@ -27,7 +34,7 @@ export class RegisterInput {
 
   @Field(() => [ServiceType])
   @IsEnum(ServiceType, { each: true })
-  @MinLength(1, {
+  @ArrayMinSize(1, {
     message: ERROR_MESSAGES.LEADS.MINIMUM_SERVICE_TYPE,
   })
   serviceType: ServiceType[];

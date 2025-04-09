@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -8,7 +8,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { LeadsModule } from './leads/leads.module';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { GraphQLErrorFilter } from './shared/common/filters/global-exception.filter';
 import { formatGraphQLError } from './shared/common/utils/graphql-error-formatter';
 
@@ -32,6 +32,14 @@ import { formatGraphQLError } from './shared/common/utils/graphql-error-formatte
     {
       provide: APP_FILTER,
       useClass: GraphQLErrorFilter,
+    },
+    {
+      provide: APP_PIPE,
+      useValue: new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
     },
     AppService,
   ],
