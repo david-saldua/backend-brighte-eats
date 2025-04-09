@@ -11,7 +11,7 @@ type Lead {
   ServiceInterest: [ServiceInterest!]!
   createdAt: DateTime!
   email: String!
-  id: ID!
+  id: Int!
   mobile: String!
   name: String!
   postCode: String!
@@ -43,7 +43,7 @@ input RegisterInput {
 
 type ServiceInterest {
   createdAt: DateTime!
-  id: ID!
+  id: Int!
   serviceType: ServiceType!
   updatedAt: DateTime!
 }

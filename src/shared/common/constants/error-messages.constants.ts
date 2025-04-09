@@ -13,5 +13,10 @@ export const ERROR_MESSAGES = {
     INVALID_SERVICE_TYPE: 'Invalid service type provided',
     INVALID_PHONE_NUMBER: 'Please enter a valid Philippines phone number',
     MINIMUM_SERVICE_TYPE: 'At least one service type must be selected',
+    REGISTRATION_FAILED: 'Lead registration failed',
+    LEAD_NOT_FOUND: 'Lead is not existing',
   },
+
+  DATABASE_ERROR: (error: { message: string }) => `Database error: ${error.message}`,
+  FIELD_NAMES_EXIST: (fieldNames: string) => `${fieldNames} already exists`,
 };

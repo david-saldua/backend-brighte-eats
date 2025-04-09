@@ -56,7 +56,7 @@ export class GraphQLErrorFilter implements GqlExceptionFilter {
 
     if (typeof response === 'object') {
       message = (response as any).message ?? exception.message;
-      code = (response as any).error ?? ERROR_CODES.HTTP_EXCEPTION;
+      code = (response as any).code ?? ERROR_CODES.HTTP_EXCEPTION;
     }
 
     return { status, message, code };

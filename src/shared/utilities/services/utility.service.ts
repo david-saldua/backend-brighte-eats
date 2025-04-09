@@ -1,6 +1,12 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ISuccessResponse } from '../interfaces/response.interface';
-import { SUCCESS_MESSAGES } from 'src/shared/common/constants';
+import { ERROR_CODES, ERROR_MESSAGES, SUCCESS_MESSAGES } from 'src/shared/common/constants';
 
 @Injectable()
 export class UtilityService {
@@ -22,5 +28,30 @@ export class UtilityService {
       message,
       data,
     };
+  }
+
+  /**
+   * Handles errors by categorizing them by type and throwing appropriate exceptions
+   * with standardized error information.
+   *
+   * @param error - The error to be processed
+   * @throws HttpException with standardized error format
+   */
+  handleError(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    if (error instanceof Error) {
+      throw new BadRequestException({
+        message: error.message ?? ERROR_MESSAGES.BAD_REQUEST,
+        code: ERROR_CODES.BAD_REQUEST,
+      });
+    }
+
+    throw new InternalServerErrorException({
+      message: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+      code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+    });
   }
 }

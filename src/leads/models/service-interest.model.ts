@@ -1,9 +1,9 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { ServiceType } from '../enums/service-type.enum';
 
 @ObjectType()
 export class ServiceInterest {
-  @Field(() => ID)
+  @Field(() => Int)
   id: number;
 
   @Field(() => ServiceType)

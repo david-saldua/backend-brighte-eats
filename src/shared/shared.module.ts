@@ -5,7 +5,6 @@ import { UtilityModule } from './utilities/utility.module';
 @Global()
 @Module({
   imports: [PrismaModule, UtilityModule],
-  providers: [],
   exports: [PrismaModule, UtilityModule],
 })
 export class SharedModule {}
