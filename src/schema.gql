@@ -1,0 +1,56 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Lead {
+  ServiceInterest: [ServiceInterest!]!
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  mobile: String!
+  name: String!
+  postCode: String!
+  updatedAt: DateTime!
+}
+
+type LeadResponse {
+  data: Lead
+  message: String!
+  statusCode: Int!
+  success: Boolean!
+}
+
+type Mutation {
+  register(input: RegisterInput!): LeadResponse!
+}
+
+type Query {
+  getLeadSample: String!
+}
+
+input RegisterInput {
+  email: String!
+  mobile: String!
+  name: String!
+  postCode: String!
+  serviceType: [ServiceType!]!
+}
+
+type ServiceInterest {
+  createdAt: DateTime!
+  id: ID!
+  serviceType: ServiceType!
+  updatedAt: DateTime!
+}
+
+"""The types of services offered"""
+enum ServiceType {
+  DELIVERY
+  PAYMENT
+  PICKUP
+}

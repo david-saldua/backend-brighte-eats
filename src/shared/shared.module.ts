@@ -1,9 +1,11 @@
 import { Global, Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
+import { UtilityModule } from './utilities/utility.module';
 
 @Global()
 @Module({
-  imports: [PrismaModule],
-  exports: [PrismaModule],
+  imports: [PrismaModule, UtilityModule],
+  providers: [],
+  exports: [PrismaModule, UtilityModule],
 })
 export class SharedModule {}
