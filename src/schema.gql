@@ -2,20 +2,18 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-"""
-A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
-"""
-scalar DateTime
+"""Custom date format scalar type"""
+scalar CustomDateFormat
 
 type Lead {
   ServiceInterest: [ServiceInterest!]!
-  createdAt: DateTime!
+  createdAt: CustomDateFormat!
   email: String!
   id: Int!
   mobile: String!
   name: String!
   postCode: String!
-  updatedAt: DateTime!
+  updatedAt: CustomDateFormat!
 }
 
 type LeadResponse {
@@ -42,10 +40,10 @@ input RegisterInput {
 }
 
 type ServiceInterest {
-  createdAt: DateTime!
+  createdAt: CustomDateFormat!
   id: Int!
   serviceType: ServiceType!
-  updatedAt: DateTime!
+  updatedAt: CustomDateFormat!
 }
 
 """The types of services offered"""
