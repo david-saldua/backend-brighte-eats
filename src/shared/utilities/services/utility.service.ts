@@ -33,7 +33,6 @@ export class UtilityService {
   /**
    * Handles errors by categorizing them by type and throwing appropriate exceptions
    * with standardized error information.
-   *
    * @param error - The error to be processed
    * @throws HttpException with standardized error format
    */

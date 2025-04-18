@@ -3,10 +3,24 @@ import {
   HttpStatus,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
 import { ERROR_CODES, ERROR_MESSAGES, PRISMA_ERROR_CODES } from '../constants';
+
+/**
+ * //TODO:
+ * apply the other error handling instances of prisma error✅
+ * add jsdocs to all of the functions ✅
+ * create a utility that formats the date
+ * create unit test for register
+ *
+ * use TDD on lead info and lead list
+ * use base repository for finding the leads list
+ * ube base repository for finding lead information
+ *
+ */
 
 @Injectable()
 export abstract class BaseRepository<T> {
@@ -16,14 +30,10 @@ export abstract class BaseRepository<T> {
   ) {}
 
   /**
-   * //TODO:
-   * - apply the other error handling instances of prisma error
-   * - add jsdocs to all of the functions
-   * - use base repository for finding the leads list
-   * - ube base repository for finding lead information
-   *
+   * Handles Prisma errors by determining their type and delegating to appropriate handlers.
+   * @param error - The error thrown by Prisma operations
+   * @throws The original error after handling
    */
-
   protected handlePrismaError(error: unknown): never {
     switch (true) {
       case error instanceof PrismaClientKnownRequestError:
@@ -35,10 +45,23 @@ export abstract class BaseRepository<T> {
     throw error;
   }
 
+  /**
+   * Handles Prisma known request errors by throwing appropriate HTTP exceptions.
+   * @param error - The Prisma client known request error to handle
+   * @throws {NotFoundException} When a record is not found
+   * @throws {InternalServerErrorException} For other database errors
+   */
   private handleKnownRequestError(error: PrismaClientKnownRequestError): never {
     switch (error.code) {
       case PRISMA_ERROR_CODES.PRISMA_UNIQUE_CONSTRAINT:
         this.throwPrismaUniqueConstraint(error);
+
+      case PRISMA_ERROR_CODES.RECORD_NOT_FOUND:
+        throw new NotFoundException({
+          status: HttpStatus.NOT_FOUND,
+          message: ERROR_MESSAGES.NOT_FOUND,
+          code: ERROR_CODES.NOT_FOUND,
+        });
 
       default:
         throw new InternalServerErrorException({
@@ -49,8 +72,18 @@ export abstract class BaseRepository<T> {
     }
   }
 
+  /**
+   * Handles Prisma unique constraint violations by throwing a formatted ConflictException. *
+   * @param error - The Prisma error containing information about the unique constraint violation
+   * @throws {ConflictException} With formatted field names and standardized error structure
+   */
   private throwPrismaUniqueConstraint(error: PrismaClientKnownRequestError): never {
-    const fields = (error.meta.target as string[]) ?? [];
+    const { target = [] } = error.meta ?? {};
+    const fields: string[] = Array.isArray(target)
+      ? target.filter((item): item is string => typeof item === 'string')
+      : typeof target === 'string'
+        ? [target]
+        : [];
     const fieldNames = fields
       .map((field) => field.charAt(0).toUpperCase() + field.slice(1))
       .join(' and ');
@@ -62,6 +95,11 @@ export abstract class BaseRepository<T> {
     });
   }
 
+  /**
+   * Handles unknown errors by throwing an InternalServerErrorException
+   * @private
+   * @throws {InternalServerErrorException} Always throws this exception
+   */
   private handleUnknownError() {
     throw new InternalServerErrorException({
       status: HttpStatus.INTERNAL_SERVER_ERROR,

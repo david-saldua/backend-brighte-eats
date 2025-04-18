@@ -1,8 +1,7 @@
-import { ConflictException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
 import { RegisterInput } from '../dto/register.input';
 import { Lead, Prisma, ServiceInterest } from '@prisma/client';
-import { ERROR_CODES, ERROR_MESSAGES, PRISMA_ERROR_CODES } from 'src/shared/common/constants';
 import { BaseRepository } from 'src/shared/common/repository/base.repository';
 
 @Injectable()
@@ -13,7 +12,6 @@ export class LeadsRepository extends BaseRepository<Lead> {
 
   /**
    * Creates a new lead record with associated service interests
-   *
    * @param data - The lead registration data including optional service types
    * @returns A promise that resolves to the created lead with its service interests
    */

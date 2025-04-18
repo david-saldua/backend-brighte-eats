@@ -20,4 +20,5 @@ export const ERROR_CODES = {
 
 export const PRISMA_ERROR_CODES = {
   PRISMA_UNIQUE_CONSTRAINT: 'P2002',
+  RECORD_NOT_FOUND: 'P2025',
 };

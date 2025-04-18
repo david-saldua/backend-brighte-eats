@@ -4,9 +4,6 @@ import { GraphQLError } from 'graphql';
 import { IErrorInfo } from '../interfaces/error-info.interface';
 import { ERROR_CODES, ERROR_MESSAGES } from '../constants';
 
-/**
- * Global filter that catches and processes all exceptions in GraphQL context, converting them to standardized errors.
- */
 @Catch()
 export class GraphQLErrorFilter implements GqlExceptionFilter {
   /**
@@ -65,7 +62,6 @@ export class GraphQLErrorFilter implements GqlExceptionFilter {
   /**
    * Handles GraphQL errors by converting them into a standardized error info structure.
    * Maps GraphQL errors to HTTP status codes and extracts relevant error information.
-   *
    * @param exception - The GraphQL error to be processed
    * @returns A standardized error info object with status, message, code, and extensions
    */
@@ -106,7 +102,6 @@ export class GraphQLErrorFilter implements GqlExceptionFilter {
   /**
    * Creates a GraphQLError instance with formatted error information.
    * Includes status, code, timestamp, and any additional extensions in the error.
-   *
    * @param errorInfo - The error information containing status, message, code and optional extensions
    * @returns A GraphQLError instance with formatted extensions
    */
