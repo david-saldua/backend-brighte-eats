@@ -1,5 +1,6 @@
 import { ApolloServerPlugin, GraphQLRequestListener } from '@apollo/server';
 import { Plugin } from '@nestjs/apollo';
+import { Injectable, Logger } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
 
 interface ResponseData {
@@ -39,8 +40,11 @@ type ResponseBodyHandler = {
   hasErrors: (body: unknown) => boolean;
 };
 
+@Injectable()
 @Plugin()
 export class GraphqlLoggingPlugin implements ApolloServerPlugin {
+  private readonly logger = new Logger('GraphQL');
+
   private responseHandlers: Record<string, ResponseBodyHandler> = {
     single: {
       getData: (body: unknown): ResponseData | undefined => {
@@ -92,54 +96,51 @@ export class GraphqlLoggingPlugin implements ApolloServerPlugin {
     const requestId = contextValue?.req?.requestId ?? 'No id available';
     const startTime = Date.now();
 
+    // Log request start
     this.logRequestStart(requestId, request);
 
-    const addRequestIdToResponseData = this.addRequestIdToResponseData.bind(this);
-    const checkForErrors = this.checkForErrors.bind(this);
-    const logResponse = this.logResponse.bind(this);
-    const logErrors = this.logErrors.bind(this);
-
+    // Use arrow functions to preserve 'this' context
     return {
-      async didResolveOperation(requestContext) {
+      didResolveOperation: async (requestContext) => {
         const operationName = requestContext?.operationName ?? 'anonymous operation';
-        console.log(`[GraphQL][${requestId}] Operations resolved: ${operationName}`);
+        this.logger.log(`[${requestId}] Operations resolved: ${operationName}`);
       },
 
-      async executionDidStart() {
-        console.log(`[GraphQL][${requestId}] Execution started`);
+      executionDidStart: async () => {
+        this.logger.log(`[${requestId}] Execution started`);
         const execStartTime = Date.now();
 
         return {
-          async executionDidEnd(err) {
+          executionDidEnd: async (err) => {
             const execEndTime = Date.now();
             const executionTime = execEndTime - execStartTime;
 
-            console.log(`[GraphQL][${requestId}] Execution completed in ${executionTime}ms`);
+            this.logger.log(`[${requestId}] Execution completed in ${executionTime}ms`);
 
             if (err) {
-              console.error(`[GraphQL][${requestId}] Execution error:`, err);
+              this.logger.error(`[${requestId}] Execution error: ${err}`);
             }
           },
         };
       },
 
-      async didEncounterErrors(requestContext) {
-        logErrors(requestId, requestContext.errors);
+      didEncounterErrors: async (requestContext) => {
+        this.logErrors(requestId, requestContext.errors);
       },
 
-      async willSendResponse(requestContext) {
+      willSendResponse: async (requestContext) => {
         const endTime = Date.now();
         const duration = endTime - startTime;
         const { body } = requestContext.response;
 
         try {
-          addRequestIdToResponseData(body, requestId);
+          this.addRequestIdToResponseData(body, requestId);
         } catch (error) {
-          console.error(`[GraphQL][${requestId}] Error modifying response:`, error);
+          this.logger.error(`[${requestId}] Error modifying response: ${error}`);
         }
 
-        const hasErrors = checkForErrors(body);
-        logResponse(requestId, request, body, duration, hasErrors);
+        const hasErrors = this.checkForErrors(body);
+        this.logResponse(requestId, request, body, duration, hasErrors);
       },
     };
   }
@@ -148,15 +149,13 @@ export class GraphqlLoggingPlugin implements ApolloServerPlugin {
    * Logs the start of a GraphQL request
    */
   private logRequestStart(requestId: string, request: any): void {
-    console.log(
-      `[GraphQL][${requestId}] Request started: ${request?.operationName ?? 'anonymous operation'}`,
+    this.logger.log(
+      `[${requestId}] Request started: ${request?.operationName ?? 'anonymous operation'}`,
     );
-    console.log(`[GraphQL][${requestId}] Query: ${request.query}`);
+    this.logger.debug(`[${requestId}] Query: ${request.query}`);
 
     if (request.variables && Object.keys(request.variables).length > 0) {
-      console.log(
-        `[GraphQL][${requestId}] Variables: ${JSON.stringify(request.variables, null, 2)}`,
-      );
+      this.logger.debug(`[${requestId}] Variables: ${JSON.stringify(request.variables, null, 2)}`);
     }
   }
 
@@ -171,7 +170,9 @@ export class GraphqlLoggingPlugin implements ApolloServerPlugin {
       extensions: error.extensions,
     }));
 
-    console.error(`[GraphQL][${requestId}] Encountered ${errorCount} error(s):`, formattedErrors);
+    this.logger.error(
+      `[${requestId}] Encountered ${errorCount} error(s): ${JSON.stringify(formattedErrors, null, 2)}`,
+    );
   }
 
   /**
@@ -189,14 +190,22 @@ export class GraphqlLoggingPlugin implements ApolloServerPlugin {
     const responseLog = {
       requestId,
       operationName,
-      query,
       variables,
-      responseSize: JSON.stringify(body).length,
-      duration: `${duration}ms`,
       hasErrors,
+      query,
+      responseSize: JSON.stringify(body, null, 2).length,
+      duration: `${duration}ms`,
     };
 
-    console.log(`[GraphQL][${requestId}] Response sent in ${duration}ms:`, responseLog);
+    if (hasErrors) {
+      this.logger.error(
+        `[${requestId}] Response sent in ${duration}ms: ${JSON.stringify(responseLog, null, 2)}`,
+      );
+    } else {
+      this.logger.log(
+        `[${requestId}] Response sent in ${duration}ms: ${JSON.stringify(responseLog, null, 2)}`,
+      );
+    }
   }
 
   /**
