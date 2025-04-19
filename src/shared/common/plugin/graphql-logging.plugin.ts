@@ -1,11 +1,6 @@
 import { ApolloServerPlugin, GraphQLRequestListener } from '@apollo/server';
 import { Plugin } from '@nestjs/apollo';
 import { Injectable, Logger } from '@nestjs/common';
-import { GraphQLError } from 'graphql';
-
-interface ResponseData {
-  [key: string]: unknown;
-}
 
 interface StandardResponseField {
   success: boolean;
@@ -14,95 +9,54 @@ interface StandardResponseField {
   [key: string]: unknown;
 }
 
-interface SingleResponseBody {
-  kind: 'single';
-  singleResult: {
-    data?: ResponseData;
-    errors?: readonly GraphQLError[];
+interface ResponseBody {
+  kind?: string;
+  singleResult?: {
+    data?: Record<string, unknown>;
+    errors?: Array<{
+      message: string;
+      path?: ReadonlyArray<string | number>;
+      extensions?: Record<string, unknown>;
+    }>;
   };
-}
-
-interface IncrementalResponseBody {
-  kind: 'incremental';
-  initialResult: {
-    data?: ResponseData;
-    errors?: readonly GraphQLError[];
+  initialResult?: {
+    data?: Record<string, unknown>;
+    errors?: Array<{
+      message: string;
+      path?: ReadonlyArray<string | number>;
+      extensions?: Record<string, unknown>;
+    }>;
   };
+  data?: Record<string, unknown>;
+  errors?: Array<{
+    message: string;
+    path?: ReadonlyArray<string | number>;
+    extensions?: Record<string, unknown>;
+  }>;
 }
-
-interface LegacyResponseBody {
-  data?: ResponseData;
-  errors?: readonly GraphQLError[];
-}
-
-type ResponseBodyHandler = {
-  getData: (body: unknown) => ResponseData | null | undefined;
-  hasErrors: (body: unknown) => boolean;
-};
 
 @Injectable()
 @Plugin()
 export class GraphqlLoggingPlugin implements ApolloServerPlugin {
   private readonly logger = new Logger('GraphQL');
 
-  private responseHandlers: Record<string, ResponseBodyHandler> = {
-    single: {
-      getData: (body: unknown): ResponseData | undefined => {
-        if (this.isSingleResponse(body)) {
-          return body.singleResult.data;
-        }
-        return undefined;
-      },
-      hasErrors: (body: unknown): boolean => {
-        if (this.isSingleResponse(body)) {
-          const errors = body.singleResult.errors;
-          return Array.isArray(errors) ? errors.length > 0 : false;
-        }
-        return false;
-      },
-    },
-    incremental: {
-      getData: (body: unknown): ResponseData | undefined => {
-        if (this.isIncrementalResponse(body)) {
-          return body.initialResult.data;
-        }
-        return undefined;
-      },
-      hasErrors: (body: unknown): boolean => {
-        if (this.isIncrementalResponse(body)) {
-          const errors = body.initialResult.errors;
-          return Array.isArray(errors) ? errors.length > 0 : false;
-        }
-        return false;
-      },
-    },
-    legacy: {
-      getData: (body: unknown): ResponseData | undefined => {
-        if (this.isLegacyResponse(body) && body.data) {
-          return body.data;
-        }
-        return undefined;
-      },
-      hasErrors: (body: unknown): boolean => {
-        if (this.isLegacyResponse(body) && body.errors) {
-          return Array.isArray(body.errors) ? body.errors.length > 0 : false;
-        }
-        return false;
-      },
-    },
-  };
-
   async requestDidStart({ request, contextValue }): Promise<GraphQLRequestListener<unknown>> {
     const requestId = contextValue?.req?.requestId ?? 'No id available';
     const startTime = Date.now();
+    const operationName = request?.operationName ?? 'anonymous operation';
 
-    // Log request start
-    this.logRequestStart(requestId, request);
+    this.logger.log(`[${requestId}] Request started: ${operationName}`);
 
-    // Use arrow functions to preserve 'this' context
+    if (request.query) {
+      this.logger.debug(`[${requestId}] Query: ${request.query}`);
+    }
+
+    if (request.variables && Object.keys(request.variables).length > 0) {
+      this.logger.debug(`[${requestId}] Variables: ${JSON.stringify(request.variables)}`);
+    }
+
     return {
-      didResolveOperation: async (requestContext) => {
-        const operationName = requestContext?.operationName ?? 'anonymous operation';
+      didResolveOperation: async () => {
         this.logger.log(`[${requestId}] Operations resolved: ${operationName}`);
       },
 
@@ -112,9 +66,7 @@ export class GraphqlLoggingPlugin implements ApolloServerPlugin {
 
         return {
           executionDidEnd: async (err) => {
-            const execEndTime = Date.now();
-            const executionTime = execEndTime - execStartTime;
-
+            const executionTime = Date.now() - execStartTime;
             this.logger.log(`[${requestId}] Execution completed in ${executionTime}ms`);
 
             if (err) {
@@ -124,169 +76,95 @@ export class GraphqlLoggingPlugin implements ApolloServerPlugin {
         };
       },
 
-      didEncounterErrors: async (requestContext) => {
-        this.logErrors(requestId, requestContext.errors);
+      didEncounterErrors: async ({ errors }) => {
+        const errorCount = errors.length;
+        const formattedErrors = errors.map((error) => ({
+          message: error.message,
+          path: error.path,
+          extensions: error.extensions,
+        }));
+
+        this.logger.error(
+          `[${requestId}] Encountered ${errorCount} error(s): ${JSON.stringify(formattedErrors)}`,
+        );
       },
 
-      willSendResponse: async (requestContext) => {
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-        const { body } = requestContext.response;
+      willSendResponse: async ({ response }) => {
+        const duration = Date.now() - startTime;
+        const { body } = response;
 
         try {
-          this.addRequestIdToResponseData(body, requestId);
+          this.addRequestIdToResponse(body as ResponseBody, requestId);
         } catch (error) {
           this.logger.error(`[${requestId}] Error modifying response: ${error}`);
         }
 
-        const hasErrors = this.checkForErrors(body);
-        this.logResponse(requestId, request, body, duration, hasErrors);
+        const hasErrors = this.hasErrors(body as ResponseBody);
+
+        const logMethod = hasErrors
+          ? this.logger.error.bind(this.logger)
+          : this.logger.log.bind(this.logger);
+        logMethod(`[${requestId}] Response sent in ${duration}ms for ${operationName}`);
       },
     };
   }
 
-  /**
-   * Logs the start of a GraphQL request
-   */
-  private logRequestStart(requestId: string, request: any): void {
-    this.logger.log(
-      `[${requestId}] Request started: ${request?.operationName ?? 'anonymous operation'}`,
-    );
-    this.logger.debug(`[${requestId}] Query: ${request.query}`);
-
-    if (request.variables && Object.keys(request.variables).length > 0) {
-      this.logger.debug(`[${requestId}] Variables: ${JSON.stringify(request.variables, null, 2)}`);
-    }
-  }
-
-  /**
-   * Logs GraphQL errors
-   */
-  private logErrors(requestId: string, errors: readonly GraphQLError[]): void {
-    const errorCount = errors.length;
-    const formattedErrors = errors.map((error) => ({
-      message: error.message,
-      path: error.path,
-      extensions: error.extensions,
-    }));
-
-    this.logger.error(
-      `[${requestId}] Encountered ${errorCount} error(s): ${JSON.stringify(formattedErrors, null, 2)}`,
-    );
-  }
-
-  /**
-   * Logs the GraphQL response
-   */
-  private logResponse(
-    requestId: string,
-    request: any,
-    body: unknown,
-    duration: number,
-    hasErrors: boolean,
-  ): void {
-    const { operationName = 'anonymous operation', query, variables } = request;
-
-    const responseLog = {
-      requestId,
-      operationName,
-      variables,
-      hasErrors,
-      query,
-      responseSize: JSON.stringify(body, null, 2).length,
-      duration: `${duration}ms`,
-    };
-
-    if (hasErrors) {
-      this.logger.error(
-        `[${requestId}] Response sent in ${duration}ms: ${JSON.stringify(responseLog, null, 2)}`,
-      );
-    } else {
-      this.logger.log(
-        `[${requestId}] Response sent in ${duration}ms: ${JSON.stringify(responseLog, null, 2)}`,
-      );
-    }
-  }
-
-  /**
-   * Adds requestId to response data fields that match our standard response format
-   */
-  private addRequestIdToResponseData(body: unknown, requestId: string): void {
-    const handler = this.getResponseHandler(body);
-    const data = handler.getData(body);
-
+  private addRequestIdToResponse(body: ResponseBody, requestId: string): void {
+    const data = this.extractData(body);
     if (!data) return;
 
-    for (const fieldName in data) {
-      const field = data[fieldName];
-
+    Object.keys(data).forEach((key) => {
+      const field = data[key];
       if (this.isStandardResponseField(field)) {
-        data[fieldName] = { ...(field as StandardResponseField), requestId };
+        data[key] = { ...field, requestId };
       }
-    }
+    });
   }
 
-  /**
-   * Checks if the response contains errors
-   */
-  private checkForErrors(body: unknown): boolean {
-    const handler = this.getResponseHandler(body);
-    return handler.hasErrors(body);
-  }
+  private extractData(body: ResponseBody): Record<string, unknown> | undefined {
+    if (!body || typeof body !== 'object') return undefined;
 
-  /**
-   * Gets the appropriate handler for the response body type
-   */
-  private getResponseHandler(body: unknown): ResponseBodyHandler {
-    if (this.isSingleResponse(body)) {
-      return this.responseHandlers.single;
+    if (body.kind === 'single' && body.singleResult?.data) {
+      return body.singleResult.data;
     }
 
-    if (this.isIncrementalResponse(body)) {
-      return this.responseHandlers.incremental;
+    if (body.kind === 'incremental' && body.initialResult?.data) {
+      return body.initialResult.data;
     }
 
-    return this.responseHandlers.legacy;
+    if (body.data) {
+      return body.data;
+    }
+
+    return undefined;
   }
 
-  /**
-   * Check if a field matches our standard response format
-   */
+  private hasErrors(body: ResponseBody): boolean {
+    if (!body || typeof body !== 'object') return false;
+
+    if (body.kind === 'single' && body.singleResult?.errors?.length > 0) {
+      return true;
+    }
+
+    if (body.kind === 'incremental' && body.initialResult?.errors?.length > 0) {
+      return true;
+    }
+
+    if (body.errors?.length > 0) {
+      return true;
+    }
+
+    return false;
+  }
+
   private isStandardResponseField(field: unknown): field is StandardResponseField {
     return (
       field !== null &&
       typeof field === 'object' &&
-      'success' in field &&
-      'statusCode' in field &&
-      'message' in field
+      field !== null &&
+      'success' in (field as object) &&
+      'statusCode' in (field as object) &&
+      'message' in (field as object)
     );
-  }
-
-  isSingleResponse(body: unknown): body is SingleResponseBody {
-    return (
-      !!body &&
-      typeof body === 'object' &&
-      'kind' in body &&
-      body.kind === 'single' &&
-      'singleResult' in body &&
-      !!body.singleResult &&
-      typeof body.singleResult === 'object'
-    );
-  }
-
-  isIncrementalResponse(body: unknown): body is IncrementalResponseBody {
-    return (
-      !!body &&
-      typeof body === 'object' &&
-      'kind' in body &&
-      body.kind === 'incremental' &&
-      'initialResult' in body &&
-      !!body.initialResult &&
-      typeof body.initialResult === 'object'
-    );
-  }
-
-  isLegacyResponse(body: unknown): body is LegacyResponseBody {
-    return !!body && typeof body === 'object' && ('data' in body || 'errors' in body);
   }
 }
