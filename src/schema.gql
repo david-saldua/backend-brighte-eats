@@ -19,6 +19,9 @@ type Lead {
 type LeadResponse {
   data: Lead
   message: String!
+
+  """Unique identifier for tracking this request"""
+  requestId: String
   statusCode: Int!
   success: Boolean!
 }

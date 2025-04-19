@@ -19,6 +19,12 @@ export function createResponseType<T>(ItemType: Type<T>) {
 
     @Field(() => ItemType, { nullable: true })
     data?: T;
+
+    @Field(() => String, {
+      nullable: true,
+      description: 'Unique identifier for tracking this request',
+    })
+    requestId?: string;
   }
 
   return ResponseType;
@@ -42,6 +48,12 @@ export function createListResponseType<T>(ItemType: Type<T>) {
 
     @Field(() => [ItemType], { nullable: true })
     data?: T[];
+
+    @Field(() => String, {
+      nullable: true,
+      description: 'Unique identifier for tracking this request',
+    })
+    requestId?: string;
   }
   return ListResponseType;
 }

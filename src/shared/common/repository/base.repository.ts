@@ -9,19 +9,6 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
 import { ERROR_CODES, ERROR_MESSAGES, PRISMA_ERROR_CODES } from '../constants';
 
-/**
- * //TODO:
- * apply the other error handling instances of prisma error✅
- * add jsdocs to all of the functions ✅
- * create a utility that formats the date
- * create unit test for register
- *
- * use TDD on lead info and lead list
- * use base repository for finding the leads list
- * ube base repository for finding lead information
- *
- */
-
 @Injectable()
 export abstract class BaseRepository<T> {
   constructor(

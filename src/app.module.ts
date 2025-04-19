@@ -1,4 +1,4 @@
-import { Module, ValidationPipe } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -11,6 +11,7 @@ import { LeadsModule } from './leads/leads.module';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { GraphQLErrorFilter } from './shared/common/filters/global-exception.filter';
 import { formatGraphQLError } from './shared/common/utils/graphql-error-formatter';
+import { RequestIdMiddleware } from './shared/common/middleware/request-id.middleware';
 
 @Module({
   imports: [
@@ -19,6 +20,9 @@ import { formatGraphQLError } from './shared/common/utils/graphql-error-formatte
       validationSchema: configValidationSchema,
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
+      context: ({ req }) => {
+        return { req };
+      },
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
@@ -44,4 +48,8 @@ import { formatGraphQLError } from './shared/common/utils/graphql-error-formatte
     AppService,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}
