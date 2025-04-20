@@ -4,51 +4,24 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { RegisterInput } from '../dto/register.input';
 import { Lead, Prisma, ServiceInterest, ServiceType } from '@prisma/client';
 import { ConflictException, InternalServerErrorException } from '@nestjs/common';
+import {
+  createRegisterInputFactory,
+  createPrismaInputFactory,
+  createMockLeadFactory,
+  createTestLeadData,
+  createUniqueEmailRegisterInput,
+} from './factories/lead.factory';
+import { defaultServiceTypes } from './fixtures/lead.fixture';
 
 describe('LeadsRepository', () => {
   let leadsRepository: LeadsRepository;
   let prismaService: PrismaService;
 
-  const baseLeadData = {
-    email: 'Garrison_Greenfelder87@hotmail.com',
-    mobile: '+63-946-922-8301',
-    name: 'Dr. Lana Mann',
-    postCode: '15-886-982-1098',
-  };
-
-  const serviceTypes = [ServiceType.DELIVERY, ServiceType.PAYMENT];
-
-  const registerInput: RegisterInput = {
-    ...baseLeadData,
-    serviceType: serviceTypes,
-  };
-
-  const expectedPrismaInput = {
-    ...baseLeadData,
-    ServiceInterest: {
-      create: serviceTypes.map((serviceType) => ({ serviceType })),
-    },
-  };
-
-  const mockCreatedLead = {
-    id: 1,
-    ...baseLeadData,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ServiceInterest: serviceTypes.map((serviceType, index) => ({
-      id: index + 1,
-      leadId: 1,
-      serviceType,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })),
-  };
-
   const testCreateLead = async (
     input: RegisterInput,
     expectedDataInput: Prisma.LeadCreateInput,
     mockResponse: Lead & { ServiceInterest: ServiceInterest[] },
-  ) => {
+  ): Promise<Lead & { ServiceInterest: ServiceInterest[] }> => {
     jest.spyOn(prismaService.lead, 'create').mockResolvedValue(mockResponse);
 
     const result = await leadsRepository.create(input);
@@ -120,39 +93,18 @@ describe('LeadsRepository', () => {
     });
 
     it('SHOULD create a lead with valid input', async () => {
+      const { registerInput, expectedPrismaInput, mockCreatedLead } = createTestLeadData();
       await testCreateLead(registerInput, expectedPrismaInput, mockCreatedLead);
     });
 
     it('SHOULD create multiple ServiceInterest records for multiple service types', async () => {
-      const updatedServiceTypes = [...serviceTypes, ServiceType.PICKUP];
-      const updatedRegisterInput = {
-        ...registerInput,
-        serviceType: updatedServiceTypes,
-      };
-
-      const updatedExpectedPrismaInput = {
-        ...expectedPrismaInput,
-        ServiceInterest: {
-          create: updatedServiceTypes.map((serviceType) => ({ serviceType })),
-        },
-      };
-
-      const updatedMockCreatedLead = {
-        ...mockCreatedLead,
-        ServiceInterest: updatedServiceTypes.map((serviceType, index) => ({
-          id: index + 1,
-          leadId: 1,
-          serviceType,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })),
-      };
-
-      const result = await testCreateLead(
-        updatedRegisterInput,
-        updatedExpectedPrismaInput,
-        updatedMockCreatedLead,
+      const updatedServiceTypes = [...defaultServiceTypes, ServiceType.PICKUP];
+      const { registerInput, expectedPrismaInput, mockCreatedLead } = createTestLeadData(
+        undefined,
+        updatedServiceTypes,
       );
+
+      const result = await testCreateLead(registerInput, expectedPrismaInput, mockCreatedLead);
 
       expect(result.ServiceInterest).toHaveLength(3);
       expect(result.ServiceInterest.map((service) => service.serviceType)).toEqual(
@@ -161,6 +113,7 @@ describe('LeadsRepository', () => {
     });
 
     it('SHOULD handle duplicate email error and throw conflict exception', async () => {
+      const { registerInput, expectedPrismaInput, mockCreatedLead } = createTestLeadData();
       await testCreateLead(registerInput, expectedPrismaInput, mockCreatedLead);
 
       jest.spyOn(prismaService.lead, 'create').mockImplementationOnce(() => {
@@ -178,6 +131,8 @@ describe('LeadsRepository', () => {
     });
 
     it('SHOULD handle other database errors appropriately', async () => {
+      const registerInput = createRegisterInputFactory();
+
       jest.spyOn(prismaService.lead, 'create').mockImplementationOnce(() => {
         throw new Error('Database connection error');
       });
@@ -188,19 +143,30 @@ describe('LeadsRepository', () => {
     });
 
     it('SHOULD include ServiceInterest in the returned lead object', async () => {
+      const { registerInput, expectedPrismaInput, mockCreatedLead } = createTestLeadData();
       const result = await testCreateLead(registerInput, expectedPrismaInput, mockCreatedLead);
       expect(result).toHaveProperty('ServiceInterest');
     });
 
     it('SHOULD properly construct the Prisma create input from RegisterInput', async () => {
+      const { registerInput, expectedPrismaInput } = createTestLeadData();
       const createSpy = jest.spyOn(prismaService.lead, 'create');
 
+      jest.spyOn(prismaService.lead, 'create').mockResolvedValue(createMockLeadFactory());
       await leadsRepository.create(registerInput);
 
       expect(createSpy).toHaveBeenCalledWith({
         data: expectedPrismaInput,
         include: { ServiceInterest: true },
       });
+    });
+
+    it('SHOULD handle unique email inputs', async () => {
+      const uniqueInput = createUniqueEmailRegisterInput();
+      const expectedInput = createPrismaInputFactory(uniqueInput);
+      const mockLead = createMockLeadFactory(1, uniqueInput);
+
+      await testCreateLead(uniqueInput, expectedInput, mockLead);
     });
   });
 });
