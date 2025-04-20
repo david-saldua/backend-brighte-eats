@@ -1,73 +1,139 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+# Brighte Eats: Expression of Interest System Backend
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🍽️ Project Overview
 
-## Description
+Brighte Eats is a new product line from Brighte, Australia's #1 provider of sustainable upgrade solutions. This repository contains the backend GraphQL API that powers the Expression of Interest (EOI) system and administrative dashboard for the Brighte Eats initiative.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### Business Context
 
-## Installation
+Brighte is expanding beyond home improvement financing into the food sector with "Brighte Eats." This system:
+- Captures expressions of interest from potential customers
+- Provides tools for lead management and qualification
+- Delivers insights to refine the Brighte Eats offering before full launch
+- Supports the business team in converting leads into customers
 
-```bash
-$ npm install
+## 🔧 Technology Stack
+
+- **Framework**: [NestJS](https://nestjs.com/) - A progressive Node.js framework
+- **API**: [GraphQL](https://graphql.org/) via [@nestjs/apollo](https://docs.nestjs.com/graphql/quick-start) - Flexible API with exactly the data needed
+- **Database ORM**: [Prisma](https://www.prisma.io/) - Type-safe database access
+- **Validation**: class-validator & class-transformer for input validation
+- **Configuration**: @nestjs/config with Joi validation for environment configuration
+- **Logging**: Winston with daily-rotate-file for comprehensive logging
+- **Testing**: Jest for unit and integration testing
+
+## 🏗️ Project Structure
+
+```
+backend-brighte-eats/
+├── prisma/                 # Database schema and migrations
+│   ├── migrations/         # Database change history
+│   │   ├── 20250405004057_create_lead_and_service_interest_table
+│   │   └── 20250405013909_add_cascade_delete_on_lead
+│   └── schema.prisma       # Prisma schema definition
+├── src/
+│   ├── leads/              # Leads feature module
+│   │   ├── dto/            # Data transfer objects for lead operations
+│   │   ├── enums/          # Lead-related enumerations (status, service types)
+│   │   ├── models/         # GraphQL and domain models for leads
+│   │   ├── repositories/   # Data access repositories
+│   │   ├── resolvers/      # GraphQL resolvers for lead operations
+│   │   └── services/       # Business logic for lead management
+│   ├── shared/             # Shared modules and utilities
+│   │   ├── common/         # Common utilities and helpers
+│   │   ├── config/         # Application configuration
+│   │   ├── logger/         # Logging infrastructure
+│   │   ├── prisma/         # Prisma service and utilities
+│   │   └── utilities/      # General utility functions
+│   ├── app.module.ts       # Main application module
+│   ├── main.ts             # Application entry point
+│   └── schema.gql          # Generated GraphQL schema
+└── test/                   # End-to-end tests
 ```
 
-## Running the app
+## 📦 Installation
 
 ```bash
-# development
-$ npm run start
+# Install dependencies
+npm install
 
-# watch mode
-$ npm run start:dev
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your database credentials and other settings
 
-# production mode
-$ npm run start:prod
+# Generate Prisma client
+npx prisma generate
+
+# Apply database migrations
+npx prisma migrate deploy
 ```
 
-## Test
+## 🛠️ Development
 
 ```bash
-# unit tests
-$ npm run test
+# Start the development server with hot reload
+npm run start:dev
 
-# e2e tests
-$ npm run test:e2e
+# Run linting
+npm run lint
 
-# test coverage
-$ npm run test:cov
+# Format code
+npm run format
 ```
 
-## Support
+## 🧪 Testing
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Run unit tests
+npm run test
 
-## Stay in touch
+# Run e2e tests
+npm run test:e2e
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Generate test coverage report
+npm run test:cov
+```
 
-## License
+## 🚀 Deployment
 
-Nest is [MIT licensed](LICENSE).
+### Requirements
+- Node.js 18 or later
+- PostgreSQL database
+- Environment configured according to `.env.example`
+
+### Production Build
+```bash
+# Generate production build
+npm run build
+
+# Start production server
+npm run start:prod
+```
+
+
+## 📋 Business Requirements Implementation
+
+This backend API directly supports the Brighte Eats BRD requirements:
+
+| Business Requirement | Technical Implementation |
+|----------------------|--------------------------|
+| Customer Interest Capture | GraphQL mutations for EOI submission with data validation |
+| Lead Management | Comprehensive lead CRUD operations with filtering and sorting |
+| Reporting & Analytics | Aggregation queries for trends, geographic distribution, and service preferences |
+| Security & Compliance | Data validation, authorization, and secure storage |
+| User Experience | Fast, reliable API responses for both customer and admin interfaces |
+
+## 🤝 Contributing
+
+1. Branch naming convention: `feature/[feature-name]`, `bugfix/[bug-name]`
+2. Commit message format: `[type]: [description]` (types: feat, fix, docs, style, refactor, test, chore)
+3. Pull requests require reviews and passing tests
+4. Follow the existing code style and patterns
+
+## 📚 Additional Documentation
+
+- [NestJS Documentation](https://docs.nestjs.com/)
+- [Prisma Documentation](https://www.prisma.io/docs/)
+- [GraphQL Documentation](https://graphql.org/learn/)
+- [Project Wiki](./wiki) - Internal documentation
