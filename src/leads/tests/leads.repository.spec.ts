@@ -141,16 +141,19 @@ describe('LeadsRepository', () => {
     });
 
     it('SHOULD handle duplicate email error and throw conflict exception', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
-        'Unique constraint failed on the fields: (`email`)',
-        {
-          code: 'P2002',
-          clientVersion: '4.0.0',
-          meta: { target: ['email'] },
-        },
-      );
+      await testCreateLead(registerInput, expectedPrismaInput, mockCreatedLead);
 
-      jest.spyOn(prismaService.lead, 'create').mockRejectedValue(prismaError);
+      jest.spyOn(prismaService.lead, 'create').mockImplementationOnce(() => {
+        throw new Prisma.PrismaClientKnownRequestError(
+          'Unique constraint failed on the fields: (`email`)',
+          {
+            code: 'P2002',
+            clientVersion: '4.0.0',
+            meta: { target: ['email'] },
+          },
+        );
+      });
+
       await expect(leadsRepository.create(registerInput)).rejects.toThrow(ConflictException);
     });
   });
