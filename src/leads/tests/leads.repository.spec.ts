@@ -3,7 +3,7 @@ import { LeadsRepository } from '../repositories/leads.repository';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { RegisterInput } from '../dto/register.input';
 import { Lead, Prisma, ServiceInterest, ServiceType } from '@prisma/client';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, InternalServerErrorException } from '@nestjs/common';
 
 describe('LeadsRepository', () => {
   let leadsRepository: LeadsRepository;
@@ -58,6 +58,26 @@ describe('LeadsRepository', () => {
       include: { ServiceInterest: true },
     });
     expect(result).toEqual(mockResponse);
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: expect.any(Number),
+        email: expect.any(String),
+        name: expect.any(String),
+        mobile: expect.any(String),
+        postCode: expect.any(String),
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+        ServiceInterest: expect.arrayContaining([
+          expect.objectContaining({
+            id: expect.any(Number),
+            leadId: expect.any(Number),
+            serviceType: expect.any(String),
+            createdAt: expect.any(Date),
+            updatedAt: expect.any(Date),
+          }),
+        ]),
+      }),
+    );
 
     return result;
   };
@@ -155,6 +175,32 @@ describe('LeadsRepository', () => {
       });
 
       await expect(leadsRepository.create(registerInput)).rejects.toThrow(ConflictException);
+    });
+
+    it('SHOULD handle other database errors appropriately', async () => {
+      jest.spyOn(prismaService.lead, 'create').mockImplementationOnce(() => {
+        throw new Error('Database connection error');
+      });
+
+      await expect(leadsRepository.create(registerInput)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    it('SHOULD include ServiceInterest in the returned lead object', async () => {
+      const result = await testCreateLead(registerInput, expectedPrismaInput, mockCreatedLead);
+      expect(result).toHaveProperty('ServiceInterest');
+    });
+
+    it('SHOULD properly construct the Prisma create input from RegisterInput', async () => {
+      const createSpy = jest.spyOn(prismaService.lead, 'create');
+
+      await leadsRepository.create(registerInput);
+
+      expect(createSpy).toHaveBeenCalledWith({
+        data: expectedPrismaInput,
+        include: { ServiceInterest: true },
+      });
     });
   });
 });
